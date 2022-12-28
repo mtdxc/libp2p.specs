@@ -28,7 +28,7 @@ See the [lifecycle document][lifecycle-spec] for context about maturity level an
 
 This is the specification for an extensible pubsub protocol over libp2p, based
 on randomized topic meshes and gossip. It is a general purpose pubsub protocol
-with moderate amplification factors and good scaling properties. The protocol is
+with moderate amplification factors 适度放大因子 and good scaling properties. The protocol is
 designed to be extensible by more specialized routers, which may add protocol
 messages and gossip in order to provide behavior optimized for specific
 application profiles.
@@ -66,7 +66,7 @@ application profiles.
 ## Motivations and Prior Work
 
 The libp2p [pubsub interface specification][pubsub-interface-spec] defines the
-RPC messages exchanged by peers, but deliberately does not define routing
+RPC messages exchanged by peers, but deliberately故意 does not define routing
 semantics, connection management, or other specifics of how peers interact. This
 is left to specific pubsub protocols, allowing a great deal of flexibility in
 protocol design to support different use cases.
@@ -78,7 +78,7 @@ implementation.
 ### In the beginning was floodsub
 
 The initial implementation of the pubsub interface was `floodsub`, which adopts a
-very simple message propagation strategy - it simply "floods" the network by
+very simple message propagation传输 strategy - it simply "floods" the network by
 having every peer broadcast to every other peer they know about in a given
 topic.
 
@@ -99,9 +99,9 @@ The floodsub routing strategy has the following highly desirable properties:
 The problem however is that messages don't just follow the minimum latency
 paths; they follow all edges, thus creating a flood. The outbound degree of the
 network is unbounded, whereas we want it to be bounded in order to reduce
-bandwidth requirements and increase decentralization and scalability.
+bandwidth requirements and increase decentralization and scalability(去中心化和可扩展性).
 
-This unbounded outbound degree creates a problem for individual densely
+This unbounded outbound degree creates a problem for individual densely 密集的
 connected nodes, as they may have a large number of connected peers and cannot
 afford the bandwidth to forward all these pubsub messages. Similarly, the
 amplification factor is only bounded by the sum of degrees of all nodes in the
@@ -134,12 +134,12 @@ the [heartbeat procedure](#heartbeat) to keep the mesh size within acceptable
 bounds as peers come and go.
 
 Mesh links are bidirectional - when a peer receives a `GRAFT` message informing
-them that they have been added to another peer's mesh, they will in turn add the
+them that they have been added to another peer's mesh, they will in turn反过来 add the
 peer to their own mesh, assuming they are still subscribed to the topic. In
-steady state (after [message processing](#message-processing)), if a peer `A` is
+steady稳定 state (after [message processing](#message-processing)), if a peer `A` is
 in the mesh of peer `B`, then peer `B` is also in the mesh of peer `A`.
 
-To allow peers to "reach beyond" their mesh view of a topic, we use _gossip_ to
+To allow peers to "reach beyond 超越" their mesh view of a topic, we use _gossip_ to
 propagate _metadata_ about the message flow throughout the network. This gossip
 is emitted to a random subset of peers who are not in the mesh. We can think of
 the mesh members as "full message" peers, to whom we propagate the full content
@@ -147,7 +147,7 @@ of all messages received in a topic. The remaining peers we're aware of in a
 topic can be considered "metadata-only" peers, to whom we emit gossip at
 [regular intervals](#heartbeat).
 
-The metadata can be arbitrary, but as a baseline, we send the [`IHAVE`
+The metadata can be arbitrary随意的, but as a baseline, we send the [`IHAVE`
 message](#ihave), which includes the message ids of messages we've seen in the
 last few seconds. These messages are cached, so that peers receiving the gossip
 can request them using an [`IWANT` message](#iwant).
@@ -155,17 +155,17 @@ can request them using an [`IWANT` message](#iwant).
 The router can use this metadata to improve the mesh, for instance an
 [episub](./episub.md) router built on top of gossipsub can create epidemic
 broadcast trees, suitable for use cases in which a relatively small set of
-publishers broadcasts to a much larger audience.
+publishers broadcasts to a much larger audience观众.
 
 Other possible uses for gossip include restarting message transmission at
-different points in the overlay to rectify downstream message loss, or
+different points in the overlay to rectify纠正 downstream message loss, or
 accelerating message transmission to peers who may be at some distant in the
 mesh by opportunistically skipping hops.
 
 ## Dependencies
 
 Pubsub is designed to fit into the libp2p "ecosystem" of modular components that
-serve complementary purposes. As such, some key functionality is assumed to be
+serve complementary互补 purposes. As such, some key functionality is assumed to be
 present and is not specified as part of pubsub itself.
 
 ### Ambient Peer Discovery
@@ -212,8 +212,8 @@ both.
 The router keeps track of some necessary state to maintain stable topic meshes
 and emit useful gossip.
 
-The state can be roughly divided into two categories: [peering
-state](#peering-state), and state related to the [message cache](#message-cache).
+The state can be roughly divided into two categories: [peering state](#peering-state), 
+and state related to the [message cache](#message-cache).
 
 ### Peering State
 
@@ -223,8 +223,8 @@ aware of and the relationship with each of them.
 There are three main pieces of peering state:
 
 - `peers` is a set of ids of all known peers that support gossipsub or floodsub.
-  Throughout this document `peers.gossipsub` will denote peers supporting
-  gossipsub, while `peers.floodsub` denotes floodsub peers.
+  Throughout this document `peers.gossipsub` will denote peers supporting gossipsub, 
+  while `peers.floodsub` denotes floodsub peers.
 
 - `mesh` is a map of subscribed topics to the set of peers in our overlay mesh
   for that topic.
@@ -233,7 +233,7 @@ There are three main pieces of peering state:
   `fanout` map contains topics to which we _are not_ subscribed.
 
 In addition to the gossipsub-specific state listed above, the libp2p pubsub
-framework maintains some "router-agnostic" state. This includes the set of
+framework maintains some "router-agnostic无关" state. This includes the set of
 topics to which we are subscribed, as well as the set of topics to which each of
 our peers is subscribed. Elsewhere in this document, we refer to
 `peers.floodsub[topic]` and `peers.gossipsub[topic]` to denote floodsub or
