@@ -65,64 +65,88 @@ See the [lifecycle document][lifecycle-spec] for context about maturity level an
 ## Overview
 
 This document specifies extensions to [gossipsub v1.0](gossipsub-v1.0.md) intended to improve
-bootstrapping and protocol attack resistance. The extensions change the algorithms that
-prescribe local peer behaviour and are fully backwards compatible with v1.0 of the protocol.
+bootstrapping and protocol attack resistance 防攻击. The extensions change the algorithms that
+prescribe规定 local peer behaviour and are fully backwards compatible with v1.0 of the protocol.
 Peers that implement these extensions, advertise v1.1 of the protocol using `/meshsub/1.1.0`
 as the protocol string.
 
-## Protocol extensions
+本文档指定了gossipsub v1.0的扩展，旨在提高引导bootstrap和协议攻击抵抗力。这些扩展改变了规定本地对等行为的算法，
+并且与协议v1.0完全向后兼容。实现这些扩展的对等节点使用协议字符串/meshsub/1.1.0，通告协议的 v1.1。
 
-### Explicit Peering Agreements
+## 协议扩展
 
-The protocol now supports explict peering agreements between node operators. With explicit peering,
+### 显示对等协议
+
+The protocol now supports explict peering agreements显式对等协议 between node operators. With explicit peering,
 the application can specify a list of peers to remain connected to and unconditionally forward
-messages to each other outside of the vagaries of the peer scoring system and other defensive
-measures.
+messages to each other outside of the vagaries变化 of the peer scoring system and other 
+defensive measures 防御措施.
 
-For every explicit peer, the router must establish and maintain a connection. The connections
+For every explicit peer显式节点, the router must establish and maintain a connection. The connections
 are initially established when the router boots, and are periodically checked for connectivity
 and reconnect if the connectivity is lost. The recommended period for connectivity checks is 5 minutes.
 
-Peering agreements are established out of band and reciprocal.
+Peering agreements are established out of band带外 and reciprocal互惠.
 explicit peers exist outside the mesh: every new valid incoming message is forwarded to the direct
-peers, and incoming RPCs are always accepted from them. It is an error to GRAFT on a explicit peer,
-and such an attempt should be logged and rejected with a PRUNE.
+peers, and incoming RPCs are always accepted from them. It is an error to GRAFT嫁接 on a explicit peer,
+and such an attempt should be logged and rejected with a PRUNE 裁剪.
+
+该协议现在支持节点操作者间的明确对等协议。通过显式对等，应用程序可以指定一个节点列表来保持连接，并无条件地向它们转发消息，
+不受对等评分系统和其他防御措施的影响。
+
+对于每个显式节点，路由器必须建立和维护连接。连接最初在路由器启动时建立，并定期检查连接，并在连接丢失时重新连接。建议连接检查时间为 5 分钟。
+
+对等协议是在带外的，且是互惠的。显式节点存在于网格外：每个新的有效传入消息都被转发到直接节点，并始终接受来自它们的传入RPC请求。
+在显式对等体上进行 Graft 是错的，应该记录这种尝试并用 PRUNE 拒绝。
 
 ### PRUNE Backoff and Peer Exchange
 
-Gossipsub relies on ambient peer discovery in order to find peers within a topic of interest.
-This puts pressure to the implementation of a scalable peer discovery service that
+Gossipsub relies on ambient peer discovery in order to find peers within a topic of interest感兴趣.
+This puts pressure压力 to the implementation of a scalable peer discovery service that
 can support the protocol. With Peer Exchange, the protocol can now bootstrap from a small
 set of nodes, without relying on an external peer discovery service.
 
-Peer Exchange (PX) kicks in when pruning a mesh because of oversubscription. Instead of simply
-telling the pruned peer to go away, the pruning peer _may_ provide a set of other peers where the
-pruned peer can connect to reform its mesh (see [Peer Scoring](#peer-scoring) below).
+Gossipsub 依赖于环境节点发现，以发现感兴趣的主题中的节点。这给可支持本协议的可扩展节点发现服务带来了压力。
+通过 Peer Exchange，该协议现在可以从一部分节点引导，而不依赖于外部节点发现服务。
 
-In addition, both the pruned and the pruning peer add a backoff period from each other, within which
+Peer Exchange (PX) kicks in when pruning a mesh because of oversubscription 在过分订阅而裁剪网格时启动. Instead of simply
+telling the pruned peer to go away, the pruning peer _may_ provide a set of other peers where the
+pruned peer can connect to reform 改革 its mesh (see [Peer Scoring](#peer-scoring) below).
+
+每个已裁剪或正在裁剪pruned的节点都有一个退避周期，在次期间，它们不能被重新嫁接regraft
+In addition, both the pruned and the pruning peer add a backoff period 退避周期 from each other, within which
 they will not try to regraft. Both the pruning and the pruned peer will immediately prune a `GRAFT`
 within the backoff period and extend it.
-When a peer tries to regraft too early, the pruning peer may apply a behavioural penalty
+When a peer tries to regraft too early, the pruning peer may apply a behavioural penalty 惩罚
 for the action, and penalize the peer through P₇ (see [Peer Scoring](#peer-scoring) below).
 
 When unsubscribing from a topic, the backoff period should be finished before subscribing to
 the topic again, otherwise a healthy mesh will be difficult to reach.
 A shorter backoff period can be used in case of an unsubscribe event, allowing faster resubscribing.
+取消订阅主题时，应在再次订阅主题之前完成退避期，否则将难以达到健康的网格。在此情况下可使用更短的退避期，从而允许更快地重新订阅。
+
 
 The recommended duration for the backoff period is 1 minute, while the recommended number of peers
 to exchange is larger than `D_hi` so that the pruned peer can reliably form a full mesh.
+退避期的建议持续时间为 1 分钟，而建议交换的节点数量大于`D_hi`, 以便修剪后的节点可以可靠地形成一个完整网格。
 In order to correctly synchronize the two peers, the pruning peer should include the backoff period
 in the PRUNE message. The peer has to wait the full backoff period before attempting to graft again
 —plus some slack to account for the offset until the next heartbeat that clears the backoff—
-otherwise it risks getting its graft rejected and being penalized in its score if it attempts to
+otherwise it risks getting its graft rejected and being penalized惩罚 in its score if it attempts to
 graft too early.
+为了正确同步两个节点状态，修剪节点应该在 PRUNE 消息中包含退避期。对等方必须等待完整的退避期加上一定空隙后才能再次尝试嫁接，
+其的空隙时间主要用于等下一次心跳来清除退避状态，如果尝试太早嫁接，嫁接请求可能被拒绝，分数也会受到惩罚。
 
 In order to implement PX, we extend the `PRUNE` control message to include an optional set of
 peers the pruned peer can connect to. This set of peers includes the Peer ID and a [_signed_ peer
 record](https://github.com/libp2p/specs/pull/217) for each peer exchanged.
-In order to facilitate the transition to the usage of signed peer records within the libp2p ecosystem,
-the emitting peer is allowed to omit the signed peer record if it doesn't have one.
+In order to facilitate促进 the transition过度 to the usage of signed peer records within the libp2p ecosystem,
+the emitting peer is allowed to omit忽略 the signed peer record if it doesn't have one.
 In this case, the pruned peer will have to rely on the ambient peer discovery service (if set up) to discover the addresses for the peer.
+为了实现 PX，我们扩展了PRUNE控制消息以包括一组被修剪的节点可以连接的节点列表。这组节点包括节点ID和每个交换的节点的[_signed_ peer
+record](https://github.com/libp2p/specs/pull/217)。
+为了促进在 libp2p 生态系统中使用签名节点记录的过渡，如果触发节点没有签名对等记录，则可以省略签名对等记录。
+在此情况下，被修剪的节点将不得不依赖环境节点发现服务（如果已设置）来发现节点地址。
 
 #### Protobuf
 
@@ -152,17 +176,19 @@ In gossipsub v1.1 publishing is (optionally) done by publishing the message to a
 with a score above a publish threshold (see [Peer Scoring](#peer-scoring) below). This applies
 regardless of whether the publisher is subscribed to the topic. With flood publishing enabled, the
 mesh is used when propagating messages from other peers, but a peer's own messages will always be
-published to all known peers in the topic.
+published to all known peers in the topic. 
+泛洪发布启用时，在转发来自其他节点的消息时使用网格，但自己的消息将永远发到该主题的所有已知节点
 
-This behaviour is prescribed to counter eclipse attacks and ensure that a newly published message
+This behaviour is prescribed对抗 to counter eclipse attacks and ensure that a newly published message
 from a honest node will reach all connected honest nodes and get out to the network at large.
-When flood publishing is in use there is no point in utilizing a fanout map or emitting gossip when
+When flood publishing is in use there is no point没意义 in utilizing a fanout map or emitting gossip when
 the peer is a pure publisher not subscribed in the topic.
+当使用泛洪发布时，当节点是未订阅主题的纯发布者时，使用扇出Map或发出八卦是没有意义的。
 
 This behaviour also reduces message propagation latency as the message is injected to more points
 in the network.
 
-### Adaptive Gossip Dissemination
+### Adaptive Gossip Dissemination 自适应gossip传输
 
 In gossipsub v1.0 gossip is emitted to a fixed number of peers, as specified by the `D_lazy`
 parameter. In gossipsub v1.1 the disemmination of gossip is adaptive; instead of emitting gossip
@@ -182,16 +208,17 @@ a `0.578125` probability.
 
 This behaviour is prescribed to counter sybil attacks and ensures that a message from a honest
 node propagates in the network with high probability.
+规定此行为是为了对抗女巫攻击，并确保来自诚实节点的消息以高概率在网络中传播。
 
-### Outbound Mesh Quotas
+### Outbound Mesh Quotas配额
 
 In gossipsub v1.0 mesh peers are randomly selected, without any weight given to the direction
-of the conneciton. In contrast, gossipsub v1.1 implements oubout connection quotas, so that
+of the conneciton. In contrast, gossipsub v1.1 implements oubound connection quotas, so that
 a peer tries to always maintain a number of outbound connections in the mesh.
 
 Specifically, we define a new overlay parameter `D_out`, which must be set below `D_lo` and
 at most `D/2`, such that:
-- When the peer prunes because of oversubscription, it selects survivor peers under the constraint
+- When the peer prunes because of oversubscription, it selects survivor幸存 peers under the constraint
   that at least `D_out` peers are outbound connections;  see also [Peer Scoring](#peer-scoring) below.
 - When the peer receives a GRAFT while oversubscribed (with mesh degree at `D_hi` or higher), it only
   accepts the new peer in the mesh if it is an outbound connection.
@@ -201,6 +228,7 @@ at most `D/2`, such that:
 
 This behaviour is presrcibed to counter sybil attacks and ensures that a coordinated inbound attack can
 never fully take over the mesh of a target peer.
+这种行为是为了对抗女巫攻击而规定的，并确保协调的入站攻击永远不会完全接管目标节点的网格。
 
 ### Peer Scoring
 

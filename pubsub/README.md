@@ -49,7 +49,7 @@ and spec status.
 
 ## Overview
 
-This is the specification for generalized pubsub over libp2p. Pubsub in libp2p
+This is the specification for generalized广义 pubsub over libp2p. Pubsub in libp2p
 is currently still experimental and this specification is subject to change.
 This document does not go over specific implementation of pubsub routing
 algorithms, it merely describes the common wire format that implementations
@@ -77,10 +77,12 @@ You can find information about the PubSub research and notes in the following re
 
 ## Stream management
 
-Data should be exchanged between peers using two separately negotiated streams,
-one inbound, one outbound. These streams are treated as unidirectional streams.
+Data should be exchanged between peers using two separately negotiated 协商 streams
+one inbound, one outbound. These streams are treated as unidirectional 单向 streams.
 The outbound stream is used only to write data. The inbound stream is used only
 to read data.
+节点数据交换使用两个单独协商的流，一个输入一个输出，这些流被当成单向流：
+输出流只用来写数据，输入流用来读数据
 
 ## The RPC
 
@@ -118,7 +120,7 @@ message Message {
 	optional string from = 1;
 	optional bytes data = 2;
 	optional bytes seqno = 3;
-        required string topic = 4;
+	required string topic = 4;
 	optional bytes signature = 5;
 	optional bytes key = 6;
 }
@@ -129,9 +131,9 @@ The `optional` fields may be omitted, depending on the
 [message ID function](#message-identification).
 
 The `from` field (optional) denotes the author of the message. This is the peer
-who initially authored the message, and NOT the peer who propagated it. Thus, as
+who initially authored the message, and NOT the peer who propagated传播 it. Thus, as
 the message is routed through a swarm of pubsubbing peers, the original
-authorship is preserved.
+authorship is preserved 保留原始作者身份.
 
 The `seqno` field (optional) is a 64-bit big-endian uint that is a linearly
 increasing number that is unique among messages originating from each given
@@ -141,7 +143,7 @@ number. In other words, this number is not globally unique. It is used in
 conjunction with `from` to derive a unique `message_id` (in the default
 configuration).
 
-Henceforth, we define the term **origin-stamped messaging** to refer to messages
+Henceforth今后, we define the term **origin-stamped messaging** to refer to messages
 whose `from` and `seqno` fields are populated.
 
 The `data` (optional) field is an opaque blob of data representing the payload.
