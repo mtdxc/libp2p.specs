@@ -6,7 +6,7 @@
 
 ![]()
 
-Gossipsub is an extensible baseline pubsub protocol, based on randomized topic meshes and gossip. It is a general purpose pubsub protocol with moderate amplification factors and good scaling properties. The protocol is designed to be extensible by more specialized routers, which may add protocol messages and gossip in order to provide behaviour optimized for specific application profiles.
+Gossipsub is an extensible baseline pubsub protocol, based on randomized topic meshes and gossip. It is a general purpose pubsub protocol with moderate amplification中等放大因子 factors and good scaling properties. The protocol is designed to be extensible by more specialized routers, which may add protocol messages and gossip in order to provide behaviour optimized for specific application profiles.
 
 If you are new to Gossipsub and/or PubSub in general, we recommend you to first:
 - Read the [Publish/Subscribe guide at docs.libp2p.io](https://docs.libp2p.io/concepts/publish-subscribe/)

@@ -17,7 +17,7 @@ Interest Group: [@yusefnapora], [@raulk], [@vyzo], [@Stebalien], [@jamesray1], [
 [@vasco-santos]: https://github.com/vasco-santos
 
 Author's note:
-- This is based on an earlier research draft about an epidemic broadcast protocol
+- This is based on an earlier research draft研究草案 about an epidemic broadcast protocol
   for libp2p pubsub.
   It serves as reference for the design of episub, an extended gossipsub router
   optimized for single source multicast and scenarios with a few fixed sources
@@ -54,8 +54,8 @@ It proposes a topic pubsub protocol based on the following papers:
 3. GoCast: Gossip-enhanced Overlay Multicast for Fast and Dependable Group Communication, 2005 ([PDF](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.75.4811&rep=rep1&type=pdf))
 
 The protocol implements the Plumtree algorithm from [1], with
-membership managed using HyParView[2] and proximity-aware overlay
-construction based on the scheme proposed in GoCast[3]. The marrying
+membership managed using HyParView[2] and proximity-aware邻近感知 overlay
+construction based on the scheme proposed建议的 in GoCast[3]. The marrying
 of proximity awareness from GoCast with Plumtree was suggested by
 the original authors of Plumtree in [1].
 
@@ -66,28 +66,25 @@ The membership management protocol (Peer Sampling Service in [1])
 maintains two lists of peers that are subscribed to the topic.  The
 _active_ list contains peers with active broadcast connections. The
 _passive_ list is a partial view of the overlay at large, and is used
-for directing new joins, replacing failed peers in the active list and
-optimizing the overlay. The active list is symmetric, meaning that if
-a node P has node Q in its active list, then Q also has P in its active
-list.
+for directing指导 new joins, replacing failed peers in the active list and
+optimizing the overlay. The active list is symmetric对称, meaning that if
+a node P has node Q in its active list, then Q also has P in its active list.
 
 The broadcast protocol lazily constructs and optimizes a multicast
 tree using epidemic broadcast. The peer splits the active list into
-two sets of peers: the _eager_ peers and the _lazy_ peers. The eager
-peers form the edges of the multicast tree, while the lazy peers
-form a gossip mesh supporting the multicast tree.
+two sets of peers: the _eager_ peers and the _lazy_ peers. 
+The eager peers form the edges of the multicast tree, 
+while the lazy peers form a gossip mesh supporting the multicast tree.
 
-When a new message is broadcast, it is pushed to the eager
-peers, while lazy peers only receive message summaries and have to
-pull missing messages.  Initially, all peers in the active list are
-eager forming a connected mesh.  As messages propagate, peers _prune_
-eager links when receiving duplicate messages, thus constructing a
-multicast tree. The tree is repaired when peers receive lazy messages
-that were not propagated via eager links by _grafting_ an eager link
-on top of a lazy one.
+When a new message is broadcast, it is pushed to the eager peers, 
+while lazy peers only receive message summaries and have to pull missing messages.  
+Initially, all peers in the active list are eager forming a connected mesh.  
+As messages propagate, peers _prune_ eager links when receiving duplicate messages, 
+thus constructing a multicast tree. 
+The tree is repaired when peers receive lazy messages that were not propagated via eager links by _grafting_ an eager link on top of a lazy one.
 
-In steady state, the protocol optimizes the multicast tree in two
-ways. Whenever a message is received via both an eager link and a
+In steady state, the protocol optimizes the multicast tree in two ways. 
+Whenever a message is received via both an eager link and a
 lazy message summary, its hop count is compared. When the eager
 transmission hop count exceeds the lazy hop count by some threshold,
 then the lazy link can replace the eager link as a tree edge, reducing
@@ -107,12 +104,12 @@ P(N) = k * A(N)
 ```
 The authors in [2] select `c=1` and `k=6`, while fixing N to a target size
 of 10,000 nodes. Long term, the membership list sizes should be dynamically
-adjusted based on overlay size estimations. For practical purposes, we can
+adjusted based on overlay size estimations. For practical实际 purposes, we can
 start with a large target size, and introduce dynamic sizing later in the
 development cycle.
 
 A second parameter that needs to be adjusted is the number of random and
-nearby neighbors in A for proximity optimizations. In [3], the authors
+nearby neighbors in A for proximity optimizations近邻优化. In [3], the authors
 use two parameters `C_rand` and `C_near` to set the size of the neighbor list
 such that
 ```
@@ -120,14 +117,12 @@ A = C_rand + C_near
 ```
 
 In their analysis they fix `C_rand=1` and `C_near=5`, with their
-rationale being that a single random link is sufficient to connect the
+rationale基本原理 being that a single random link is sufficient to connect the
 overlay, at least in bimodal distributions, while overlays without any
-random links may fail to connect at all.  Nonetheless, the random link
-parameter is directly related to the connectivity of the overlay. A
-higher `C_rand` ensures connectivity with high probability and fault
-tolerance.  The fault-tolerance and connectivity properties
-of HyParView stem from the random overlay structure, so in order to
-preserve them and still optimize for proximity, we need to set
+random links may fail to connect at all.  Nonetheless尽管如此, 
+the random link parameter is directly related to the connectivity of the overlay. 
+A higher `C_rand` ensures connectivity with high probability and fault tolerance.  
+The fault-tolerance and connectivity properties of HyParView stem from源于 the random overlay structure, so in order to preserve them and still optimize for proximity, we need to set
 ```
 C_rand = log(N)
 ```
@@ -159,13 +154,10 @@ In order to join, it picks `C_rand` nodes at random and sends
 
 The `JOIN` message propagates with a random walk until a node is willing
 to accept it or the TTL expires. Upon receiving a `JOIN` message, a node Q
-evaluates it with the following criteria:
-- Q tries to open a connection to P. If the connection cannot be opened (e.g. because of NAT),
-  then it checks the TTL of the message.
-  If it is 0, the request is dropped, otherwise Q decrements the TTL and forwards
-  the message to a random node in its active list.
-- If the TTL of the request is 0 or if the size of Q's active list is less than `A`,
-  it accepts the join, adds P to its active list and sends a `NEIGHBOR` message.
+evaluates评估 it with the following criteria标准:
+- Q tries to open a connection to P. If the connection cannot be opened (e.g. because of NAT), then it checks the TTL of the message.
+  If it is 0, the request is dropped, otherwise Q decrements the TTL and forwards the message to a random node in its active list.
+- If the TTL of the request is 0 or if the size of Q's active list is less than `A`, it accepts the join, adds P to its active list and sends a `NEIGHBOR` message.
 - Otherwise it decrements the TTL and forwards the message to a random node
   in its active list.
 
@@ -186,11 +178,9 @@ may be accepted by `NEIGHBOR` message and rejected by a `DISCONNECT`
 message.
 
 Upon receiving a `NEIGHBOR` request a node Q evaluates it with the
-following criteria:
-- If the size of Q's active list is less than A, it accepts the new
-  node.
-- If P does not have enough active links (less than `C_rand`, as specified in the message),
-  it accepts P as a random neighbor.
+following criteria标准:
+- If the size of Q's active list is less than A, it accepts the new node.
+- If P does not have enough active links (less than `C_rand`, as specified in the message), it accepts P as a random neighbor.
 - Otherwise Q takes an RTT measurement to P.
   If it's closer than any near neighbors by a factor of alpha, then
   it evicts the near neighbor if it has enough active links and accepts
@@ -200,18 +190,18 @@ following criteria:
 Note that during joins, the size of the active list for some nodes may
 end up being larger than `A`. Similarly, P may end up with fewer links
 than `A` after an initial join. This follows [3] and tries to minimize
-fluttering in joins, leaving the active list pruning for the
+fluttering抖动 in joins, leaving the active list pruning for the
 stabilization period of the protocol.
 
 ### Leaving the Overlay
 
 In order to unsubscribe, the node can just leave the overlay by
 sending `DISCONNECT` messages to its active neighbors.  References to
-the node in the various passive lists scattered across the overlay
+the node in the various passive lists scattered分散 across the overlay
 will be lazily pruned over time by the passive view management
 component of the protocol.
 
-In order to facilitate fast clean up of departing nodes, we can also
+In order to facilitate促进 fast clean up of departing nodes, we can also
 introduce a `LEAVE` message that eagerly propagates across the
 network.  A node that wants to unsubscribe from the topic, emits a
 `LEAVE` to its active list neighbors in place of `DISCONNECT`.  Upon
@@ -219,7 +209,7 @@ receiving a `LEAVE`, a node removes the node from its active list
 _and_ passive lists. If the node was removed from one of the lists or
 if the TTL is greater than zero, then the `LEAVE` is propagated
 further across the active list links. This will ensure a random
-diffusion through the network that would clean most of the active
+diffusion扩散 through the network that would clean most of the active
 lists eagerly, at the cost of some bandwidth.
 
 ### Active View Management
@@ -228,23 +218,19 @@ The active list is generally managed reactively: failures are detected
 by TCP, either when a message is sent or when the connection is detected
 as closed.
 
-In addition to the reactive management strategy, the active list has
-stabilization and optimization components that run periodically with a
-randomized timer, and also serve as failure detectors. The
-stabilization component attempts to prune active lists that are larger
-than A, say because of a slew of recent joins, and grow active lists
-that are smaller than A because of some failures or previous inability
+In addition to the reactive management strategy反应管理策略, the active list has
+stabilization稳定 and optimization components that run periodically with a
+randomized timer, and also serve as failure detectors. 
+The stabilization component attempts to prune active lists that are larger
+than A, say because of a slew of一连串 recent joins, and grow active lists
+that are smaller than A because of some failures or previous inability无力
 to neighbor with enough nodes.
 
 When a node detects that its active list is too large, it queries the neighbors
 for their active lists.
-- If some neighbors have more than `C_rand` random neighbors, then links can be dropped
-  with a `DISCONNECT` message until the size of the active list is A again.
-- If the list is still too large, then it checks the active lists for neighbors that
-  are connected with each other. In this case, one of the links can be dropped
-  with a `DISCONNECT` message.
-- If the list is still too large, then we cannot safely drop connections and it will
-  remain that large until the next stabilization period.
+- If some neighbors have more than `C_rand` random neighbors, then links can be dropped with a `DISCONNECT` message until the size of the active list is A again.
+- If the list is still too large, then it checks the active lists for neighbors that are connected with each other. In this case, one of the links can be dropped with a `DISCONNECT` message.
+- If the list is still too large, then we cannot safely drop connections and it will remain that large until the next stabilization period.
 
 When a node detects that its active list is too small, then it tries
 to open more connections by picking nodes from its passive list, as
@@ -263,7 +249,7 @@ passive list as a neighbor.
 ### Passive View Management
 
 The passive list is managed cyclically, as per [2]. Periodically, with
-a randomized timer, each node performs a passive list shuffle with one
+a randomized timer, each node performs a passive list shuffle洗牌 with one
 of its active neighbors. The purpose of the shuffle is to update the
 passive lists of the nodes involved. The node that initiates the shuffle
 creates an exchange list that contains its id, `k_a` peers from its
@@ -276,9 +262,9 @@ then it propagates the request further. Otherwise, it selects nodes
 from its passive list at random, sends back a `SHUFFLEREPLY` and
 replaces them with the shuffle contents. The originating node
 receiving the `SHUFFLEREPLY` also replaces nodes in its passive list
-with the contents of the message. Care should be taken for issues
-with transitive connectivity due to NAT. If
-a node cannot connect to the originating node for a `SHUFFLEREPLY`,
+with the contents of the message. 
+Care should be taken for issues with transitive connectivity due to NAT. 
+If a node cannot connect to the originating node for a `SHUFFLEREPLY`,
 then it should not perform the shuffle. Similarly, the originating
 node could time out waiting for a shuffle reply and try again
 with a lower TTL, until a TTL of zero reuses the connection in the
@@ -333,7 +319,7 @@ The loop runs a short periodic timer, with a period in the order of
 0.1s for gossiping message summaries. Every time it fires, the node
 flushes the lazy notification queue with all the recently received
 message ids in an `IHAVE` message to its lazy peers. The `IHAVE`
-notifications summarize recent messages the node has seen and have not
+notifications summarize总结 recent messages the node has seen and have not
 propagated through the eager links.
 
 ### Multicast Tree Repair
@@ -373,19 +359,17 @@ ticks have elapsed to consider the message lost.
 The multicast tree is constructed lazily, following the path of the
 first published message from some source. Therefore, the tree may not
 directly take advantage of new paths that may appear in the overlay as
-a result of new nodes/links. The overlay may also be suboptimal for
+a result of new nodes/links. The overlay may also be suboptimal欠佳 for
 all but the first source.
 
-To overcome these limitations and adapt the overlay to multiple
-sources, the authors in [1] propose an optimization: every time a
-message is received, it is checked against the missing list and the
-hopcount of messages in the list. If the eager transmission hopcount
-exceeds the hopcount of the lazy transmission, then the tree is
-candidate for optimization. If the tree were optimal, then the
-hopcount for messages received by eager push should be less than or
-equal to the hopcount of messages propagated by lazy push. Thus the
-eager link can be replaced by the lazy link and result to a shorter
-tree.
+To overocme these limitations and adapt the overlay to multiple sources, 
+the authors in [1] propose an optimization: every time a message is received, 
+it is checked against the missing list and the hopcount of messages in the list. 
+If the eager transmission hopcount exceeds the hopcount of the lazy transmission, 
+then the tree is candidate for optimization. 
+If the tree were optimal, then the hopcount for messages received by eager push 
+should be less than or equal to the hopcount of messages propagated by lazy push. 
+Thus the eager link can be replaced by the lazy link and result to a shorter tree.
 
 To promote stability in the tree, the authors in [1] suggest that this
 optimization be performed only if the difference in hopcount is greater
@@ -394,7 +378,7 @@ the overall stability of the tree: the lower the value, the more
 easier the protocol will try to optimize the tree by exchanging
 links. But if the threshold value is too low, it may result in
 fluttering with multiple active sources. Thus, the value should be
-higher and closer to the diameter of the tree to avoid constant
+higher and closer to the diameter直径 of the tree to avoid constant
 changes.
 
 ### Active View Changes
@@ -406,24 +390,19 @@ Management protocol communicates these changes to the broadcast loop via
 `NeighborUp` and `NeighborDown` notifications.
 
 When a new node is added to the active list, the broadcast loop receives
-a `NeighborUp` notification; it simply adds the node to the eager peer
-list. On the other hand, when a node is removed with a `NeighborDown`
-notification, the loop has to consider if the node was an eager or lazy
-peer. If the node was a lazy peer, it doesn't need to do anything as the
+a `NeighborUp` notification; it simply adds the node to the eager peer list. 
+On the other hand, when a node is removed with a `NeighborDown` notification, 
+the loop has to consider if the node was an eager or lazy peer. 
+If the node was a lazy peer, it doesn't need to do anything as the
 departure does not affect the multicast tree. If the node was an eager peer
 however, the loss of that edge may result in a disconnected tree.
 
-There are two strategies in reaction to the loss of an eager peer. The
-first one is to do nothing, and wait for lazy push to repair the tree
-naturally with `IHAVE` messages in the next message broadcast. This
-might result in delays propagating the next few messages but is
-advocated by the authors in [1]. An alternative is to eagerly repair
-the tree by promoting lazy peers to eager with empty `GRAFT` messages
-and let the protocol prune duplicate paths naturally with `PRUNE`
-messages in the next message transmission. This may have a bit of
-bandwidth cost, but it is perhaps more appropriate for applications
-that value latency minimization which is the case for many IPFS
-applications.
+There are two strategies in reaction to the loss of an eager peer.
+The first one is to do nothing, and wait for lazy push to repair the tree naturally with `IHAVE` messages in the next message broadcast. 
+This might result in delays propagating the next few messages but is advocated by the authors in [1]. 
+An alternative is to eagerly repair the tree by promoting lazy peers to eager with empty `GRAFT` messages and let the protocol prune duplicate paths naturally with `PRUNE` messages in the next message transmission. 
+This may have a bit of bandwidth cost, but it is perhaps more appropriate for applications
+that value latency minimization which is the case for many IPFS applications.
 
 ## Protocol Messages
 
@@ -505,39 +484,31 @@ GRAFT {
 
 ## Differences from Plumtree/HyParView
 
-There are some noteworthy differences in the protocol described and
+There are some noteworthy值得注意 differences in the protocol described and
 the published Plumtree/HyParView protocols. There might be some more
 differences in minor details, but this document is written from a
-practical implementer's point of view.
+practical实际 implementer's point of view.
 
 Membership Management protocol:
 - The node views are managed with proximity awareness. The HyParView protocol
-  has no provisions for proximity, these come from GoCast's implementation
+  has no provisions规定 for proximity, these come from GoCast's implementation
   of proximity aware overlays; but note that we don't use UDP for RTT measurements
   and the increased `C_rand` to increase fault-tolerance at the price of some optimization.
-- Joining nodes don't get to get all A connections by kicking out extant nodes,
-  as this would result in overlay instability in periods of high churn. Instead, nodes
-  ensure that the first few links are created even if they oversubscribe their fanout, but they
-  don't go out of their way to create remaining links beyond the necessary `C_rand` links.
+- Joining nodes don't get to get all A connections by kicking out extant现存 nodes,
+  as this would result in overlay instability in periods of high churn高流失率. Instead, nodes ensure that the first few links are created even if they oversubscribe their fanout, but they don't go out of their way to create remaining links beyond the necessary `C_rand` links.
   Nodes later bring the active list to balance with a stabilization protocol.
-  Also noteworthy is that only `C_rand` `JOIN` messages are propagated with a random walk; the
-  remaining joins are considered near joins and handled with normal `NEIGHBOR` requests.
+  Also noteworthy值得注意 is that only `C_rand` `JOIN` messages are propagated with a random walk; the remaining joins are considered near joins and handled with normal `NEIGHBOR` requests.
   In short, the Join protocol is reworked, with the influence of GoCast.
 - There is no active view stabilization/optimization protocol in HyParView. This is very
-  much influenced from GoCast, where the protocol allows oversubscribing and later drops
-  extraneous connections and replaces nodes for proximity optimization.
-- `NEIGHBOR` messages play a dual role in the proposed protocol implementation, as they can
-  be used for establishing active links and retrieving membership lists.
+  much influenced影响 from GoCast, where the protocol allows oversubscribing and later drops
+  extraneous无关 connections and replaces nodes for proximity optimization.
+- `NEIGHBOR` messages play a dual role in the proposed倡议 protocol implementation, as they can be used for establishing active links and retrieving membership lists.
 - There is no connectivity check in HyParView and retires with reduced TTLs, but this
   is incredibly important in a world full of NAT.
 - There is no `LEAVE` provision in HyParView.
 
 Broadcast protocol:
-- `IHAVE` messages are aggregated and lazily pushed via a background timer. Plumtree eagerly
-  pushes `IHAVE` messages, which is wasteful and loses the opportunity for aggregation.
-  The authors do suggest lazy aggregation as a possible optimization nonetheless.
+- `IHAVE` messages are aggregated and lazily pushed via a background timer. Plumtree eagerly pushes `IHAVE` messages, which is wasteful and loses the opportunity for aggregation. The authors do suggest lazy aggregation as a possible optimization nonetheless尽管如此.
 - `GRAFT` messages similarly aggregate multiple message requests.
-- Missing messages and overlay repair are managed by a single background timer instead of
-  creating timers left and right for every missing message; that's impractical from an
-  implementation point of view, at least in Go.
+- Missing messages and overlay repair are managed by a single background timer instead of creating timers left and right for every missing message; that's impractical不切实际 from an implementation point of view, at least in Go.
 - There is no provision for eager overlay repair on `NeighborDown` messages in Plumtree.

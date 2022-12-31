@@ -51,14 +51,13 @@ and spec status.
 
 This is the specification for generalized广义 pubsub over libp2p. Pubsub in libp2p
 is currently still experimental and this specification is subject to change.
-This document does not go over specific implementation of pubsub routing
-algorithms, it merely describes the common wire format that implementations
-will use.
+This document does not go over specific implementation of pubsub routing algorithms, 
+it merely describes the common wire format that implementations will use.
 
-libp2p pubsub currently uses reliable ordered streams between peers. It assumes
-that each peer is certain of the identity of each peer it is communicating
-with.  It does not assume that messages between peers are encrypted, however
-encryption defaults to being enabled on libp2p streams.
+libp2p pubsub currently uses reliable可靠 ordered有序 streams between peers. It assumes
+that each peer is certain of the identity of each peer it is communicating with.  
+It does not assume that messages between peers are encrypted, 
+however encryption defaults to being enabled on libp2p streams.
 
 You can find information about the PubSub research and notes in the following repos:
 
@@ -79,8 +78,9 @@ You can find information about the PubSub research and notes in the following re
 
 Data should be exchanged between peers using two separately negotiated 协商 streams
 one inbound, one outbound. These streams are treated as unidirectional 单向 streams.
-The outbound stream is used only to write data. The inbound stream is used only
-to read data.
+The outbound stream is used only to write data. 
+The inbound stream is used only to read data.
+
 节点数据交换使用两个单独协商的流，一个输入一个输出，这些流被当成单向流：
 输出流只用来写数据，输入流用来读数据
 
@@ -98,8 +98,8 @@ message RPC {
 	repeated Message publish = 2;
 
 	message SubOpts {
-		optional bool subscribe = 1;
-		optional string topicid = 2;
+		optional bool subscribe = 1; // 订阅或取消订阅
+		optional string topicid = 2; // 主题名字
 	}
 }
 ```
@@ -117,9 +117,9 @@ The RPC message can contain zero or more messages of type 'Message'. The Message
 ```protobuf
 syntax = "proto2";
 message Message {
-	optional string from = 1;
-	optional bytes data = 2;
-	optional bytes seqno = 3;
+	optional string from = 1; // 消息作者
+	optional bytes data = 2;  // msg payload
+	optional bytes seqno = 3; // 针对每个from线性递增的系列号，与from叠加可做消息唯一标志
 	required string topic = 4;
 	optional bytes signature = 5;
 	optional bytes key = 6;
@@ -132,7 +132,7 @@ The `optional` fields may be omitted, depending on the
 
 The `from` field (optional) denotes the author of the message. This is the peer
 who initially authored the message, and NOT the peer who propagated传播 it. Thus, as
-the message is routed through a swarm of pubsubbing peers, the original
+the message is routed through a swarm群 of pubsubbing peers, the original
 authorship is preserved 保留原始作者身份.
 
 The `seqno` field (optional) is a 64-bit big-endian uint that is a linearly
@@ -144,13 +144,12 @@ conjunction with `from` to derive a unique `message_id` (in the default
 configuration).
 
 Henceforth今后, we define the term **origin-stamped messaging** to refer to messages
-whose `from` and `seqno` fields are populated.
+whose `from` and `seqno` fields are populated填充.
 
 The `data` (optional) field is an opaque blob of data representing the payload.
 It can contain any data that the publisher wants it to.
 
-The `topic` field specifies a topic that this message is being
-published to.
+The `topic` field specifies a topic that this message is being published to.
 
 The `signature` and `key` fields (optional) are used for message signing, if
 such feature is enabled, as explained below.
@@ -159,9 +158,8 @@ The size of the `Message` should be limited, say to 1 MiB, but could also
 be configurable, for more information see
 [issue 118](https://github.com/libp2p/specs/issues/118), while messages should be
 rejected if they are over this size.
-Note that for applications where state such as messages is
-stored, such as blockchains, it is suggested to have some kind of storage
-economics (see e.g.
+Note that for applications where state such as messages is stored, 
+such as blockchains, it is suggested to have some kind of storage economics (see e.g.
 [here](https://ethresear.ch/t/draft-position-paper-on-resource-pricing/2838),
 [here](https://ethresear.ch/t/ethereum-state-rent-for-eth-1-x-pre-eip-document/4378)
 and
@@ -169,9 +167,9 @@ and
 
 ## Message Identification
 
-Pubsub requires to uniquely identify messages via a message ID. This enables
-a wide range of processes like de-duplication, tracking, scoring,
-circuit-breaking, and others.
+Pubsub requires to uniquely identify messages via a message ID. 
+This enables a wide range of processes like de-duplication去重, tracking, scoring,
+circuit-breaking 断路, and others.
 
 **The `message_id` is calculated from the `Message` struct.**
 
@@ -184,14 +182,14 @@ Alternatively, a user-defined `message_id_fn` may be supplied, where
 of the `data` field within the `Message`, and thus one could reify
 **content-addressed messaging**.
 
-If fabricated collisions are not a concern, or difficult enough within the
+If fabricated捏造 collisions are not a concern, or difficult enough within the
 window the message is relevant in, a `message_id` based on a short digest of
 inputs may benefit performance.
 
-> **[[ Margin note ]]:** There's a potential caveat with using hashes instead of
+> **[[ Margin note ]]:** There's a potential caveat警告 with using hashes instead of
 > seqnos: the peer won't be able to send identical messages (e.g. keepalives)
 > within the timecache interval, as they will get treated as duplicates. This
-> consequence may or may not be relevant to the application at hand.
+> consequence may or may not be relevant相关 to the application at hand.
 > Reference: [#116](https://github.com/libp2p/specs/issues/116).
 
 **Note that the availability of these fields on the `Message` object will depend
@@ -204,7 +202,7 @@ implement identical message ID calculation logic, or the topic will malfunction.
 > go-libp2p-pubsub (reference implementation of this spec) only allows
 > configuring a single top-level `message_id_fn`. This function may, however,
 > vary its behaviour based on the topic (contained inside its `Message`)
-> argument. Thus, it's feasible to implement a per-topic policy using branch
+> argument. Thus, it's feasible可行的 to implement a per-topic policy using branch
 > selection control flow logic. In the near future, go-libp2p-pubsub plans to
 > push down the configuration of the `message_id_fn` to the topic level. Other
 > implementations are encouraged to do the same.
@@ -234,7 +232,7 @@ marshalled data.
 
 The protobuf blob is prefixed by the string `libp2p-pubsub:` before signing.
 
-> **[[ Margin note: ]]** Protobuf serialization is non-deterministic/canonical,
+> **[[ Margin note: ]]** Protobuf serialization is non-deterministic非确定性/canonical规范,
 > and the same data structure may result in different, valid serialised bytes
 > across implementations, as well as other issues. In the near future, the
 > signature creation and verification algorithm will be made deterministic.
@@ -247,7 +245,7 @@ The protobuf blob is prefixed by the string `libp2p-pubsub:` before signing.
 
 When signature validation fails for a signed message, the implementation must
 drop the message and omit propagation. Locally, it may treat this event in
-whichever manner it wishes (e.g. logging, penalization, etc.).
+whichever manner it wishes (e.g. logging, penalization处罚, etc.).
 
 #### Signature Policy Options
 
@@ -307,7 +305,7 @@ On the producing side:
 
 On the consuming side:
   - `signature` may be absent, and not verified.
-  - Verify `signature`, iff the `signature` is present, then reject if
+  - Verify `signature`, if the `signature` is present, then reject if
     `signature` is invalid.
 
 **`LaxNoSign` option**
